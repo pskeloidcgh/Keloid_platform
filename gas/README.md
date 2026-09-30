@@ -36,7 +36,7 @@ GAS 每日排程 ─────────> 平台 /api/line/reminders（拿�
    | 屬性 | 值 |
    |---|---|
    | `LINE_CHANNEL_ACCESS_TOKEN` | 上一步產生的 long-lived token |
-   | `PLATFORM_BASE_URL` | `https://keloid-research-platform.vercel.app`（結尾不要斜線） |
+   | `PLATFORM_BASE_URL` | `https://keloid-platform.vercel.app`（結尾不要斜線） |
    | `LINE_RELAY_SECRET` | 自己產生一組長亂數，**平台環境變數要填同一組** |
 
 3. **專案設定 → 時區** 改成 `(GMT+08:00) Taipei`（排程用得到）

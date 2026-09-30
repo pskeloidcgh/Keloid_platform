@@ -15,6 +15,13 @@
 - 網址：https://keloid-research-platform.vercel.app
 - 共用密碼：見團隊內部通知（.env.local 的 `APP_SHARED_PASSWORD`，部署於 Vercel 環境變數）
 - Supabase 專案：`keloid-research-platform`（ap-northeast-1）
+- **2026-09-30 正式環境搬家（照 `docs/遷移手冊.md`）**：GitHub `pskeloidcgh/Keloid_platform` → Vercel `keloid1/keloid-platform`；
+  Supabase 新專案 `Keloid_platform`（`genepbszeqfpsiaqtmpb`，ap-northeast-2，pskeloidcgh's Org）。
+  已套用 bootstrap 01／02／04 ＋ `20260921010000` 飲食運動問卷，個案資料不搬（從零開始）；
+  Vercel 環境變數設好（含 `SUPABASE_SERVICE_ROLE_KEY`）、確認能登入並讀到操作者後，已跑 `03_lockdown_anon.sql`
+  （anon 對所有資料表無權限、storage 的 anon 政策已移除）。正式網址 https://keloid-platform.vercel.app
+  GAS 也搬到 pskeloidcgh@gmail.com 的新 Apps Script 專案「Keloid LINE relay」（`.clasp.json` 已換新 scriptId，
+  `gas/deployment-id.txt` 已換新部署 ID）；舊帳號那支的觸發條件要停掉，免得連舊庫重複推播。
 - 登入後需先選擇「目前操作者」，已預先建立助理/專科護理師/部長/系統管理者四個操作者
 - 已預先塞入 4 筆模擬個案（含 1 筆舊資料回溯建檔範例）與 1 批舊資料匯入示範批次，供部長直接體驗操作流程
 
@@ -668,6 +675,11 @@ CGH_spine 有六宮格，但那六格有一半我們用不到——「填寫問�
 （2026-07-26 問卷回歸診間人員操作、病人不看研究資料）。扣掉後只剩衛教主題／聯絡診間／網路掛號三個入口，
 而 Rich Menu 需要一張 2500×1686 的圖片（美術成本）。**結論：先用 Quick Reply**（零圖片成本、
 一樣不用打字），等衛教內容補齊、確認真的有人在用，再決定要不要做 Rich Menu。
+
+**2026-09-30 已做 Rich Menu（一列三格，Quick Reply 保留）**：衛教主題（送出「衛教」→ 走既有選單關鍵字）／
+聯絡診間（`tel:0226482121`）／網路掛號（`reg.cgh.org.tw`，帶 `openExternalBrowser=1` 用手機預設瀏覽器開）。
+圖片由 `scripts/generate-richmenu.mjs` 用品牌色產生到 `public/line/richmenu.png`（`proxy.ts` 已放行 `/line/`）；
+GAS 執行 `setupRichMenu()` 從網站抓圖、建立並設為預設，重跑會先刪同名（`keloid-main`）舊選單。
 
 ---
 

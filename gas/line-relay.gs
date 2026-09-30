@@ -15,7 +15,7 @@
  * 1. script.google.com 建立新專案，把這整份貼進去
  * 2. 專案設定 → 指令碼屬性，新增三個屬性：
  *      LINE_CHANNEL_ACCESS_TOKEN  （LINE Developers → Messaging API → 發行長期 token）
- *      PLATFORM_BASE_URL          （例：https://keloid-research-platform.vercel.app）
+ *      PLATFORM_BASE_URL          （例：https://keloid-platform.vercel.app）
  *      LINE_RELAY_SECRET          （自己產生一組長亂數，平台的環境變數要填同一組）
  * 3. 專案設定 → 時區改成 (GMT+08:00) Taipei
  * 4. 部署 → 新增部署作業 → 類型「網頁應用程式」
@@ -219,4 +219,87 @@ function testPlatformConnection() {
     text: '傷口會癢怎麼辦？',
   });
   console.log('衛教問答測試回覆：' + String(echo.reply).slice(0, 120));
+}
+
+// ── 圖文選單（Rich Menu）───────────────────────────────────────────
+// 圖片由 scripts/generate-richmenu.mjs 產生、跟著網站部署在 <PLATFORM_BASE_URL>/line/richmenu.png。
+// 格子順序與寬度要和產圖腳本一致（一列三格，2500×843）。
+var RICH_MENU_NAME = 'keloid-main';
+var RICH_MENU_AREAS = [
+  // 「衛教」是平台的選單關鍵字（後台 menu.keywords 的第一個），會直接回主題按鈕
+  { x: 0, width: 833, action: { type: 'message', label: '衛教主題', text: '衛教' } },
+  { x: 833, width: 834, action: { type: 'uri', label: '聯絡診間', uri: 'tel:0226482121' } },
+  // openExternalBrowser=1：用手機預設瀏覽器開，不在 LINE 內建瀏覽器裡開
+  {
+    x: 1667,
+    width: 833,
+    action: {
+      type: 'uri',
+      label: '網路掛號',
+      uri: 'https://reg.cgh.org.tw/tw/reg/main_01.jsp?openExternalBrowser=1',
+    },
+  },
+];
+
+function lineApi(url, method, payload, contentType) {
+  var options = {
+    method: method,
+    headers: { Authorization: 'Bearer ' + LINE_TOKEN },
+    muteHttpExceptions: true,
+  };
+  if (payload !== undefined) {
+    options.contentType = contentType || 'application/json';
+    options.payload = contentType ? payload : JSON.stringify(payload);
+  }
+  var res = UrlFetchApp.fetch(url, options);
+  var code = res.getResponseCode();
+  if (code < 200 || code >= 300) {
+    throw new Error('LINE API ' + method + ' ' + url + ' → ' + code + '：' + res.getContentText().slice(0, 300));
+  }
+  var text = res.getContentText();
+  return text ? JSON.parse(text) : {};
+}
+
+/**
+ * 建立（或重建）圖文選單並設為所有人的預設。改了圖或格子之後再跑一次即可。
+ * 只刪名稱為 RICH_MENU_NAME 的舊選單，在 LINE Official Account Manager 手動建的不會動。
+ */
+function setupRichMenu() {
+  if (!LINE_TOKEN) throw new Error('尚未設定 LINE_CHANNEL_ACCESS_TOKEN');
+  if (!BASE_URL) throw new Error('尚未設定 PLATFORM_BASE_URL');
+
+  var image = UrlFetchApp.fetch(BASE_URL + '/line/richmenu.png', { muteHttpExceptions: true });
+  if (image.getResponseCode() !== 200) {
+    throw new Error('抓不到選單圖片（' + image.getResponseCode() + '）：' + BASE_URL + '/line/richmenu.png');
+  }
+
+  var old = lineApi('https://api.line.me/v2/bot/richmenu/list', 'get').richmenus || [];
+  old
+    .filter(function (m) {
+      return m.name === RICH_MENU_NAME;
+    })
+    .forEach(function (m) {
+      lineApi('https://api.line.me/v2/bot/richmenu/' + m.richMenuId, 'delete');
+      console.log('已刪除舊選單 ' + m.richMenuId);
+    });
+
+  var created = lineApi('https://api.line.me/v2/bot/richmenu', 'post', {
+    size: { width: 2500, height: 843 },
+    selected: true,
+    name: RICH_MENU_NAME,
+    chatBarText: '選單',
+    areas: RICH_MENU_AREAS.map(function (a) {
+      return { bounds: { x: a.x, y: 0, width: a.width, height: 843 }, action: a.action };
+    }),
+  });
+  var id = created.richMenuId;
+
+  lineApi(
+    'https://api-data.line.me/v2/bot/richmenu/' + id + '/content',
+    'post',
+    image.getBlob().getBytes(),
+    'image/png'
+  );
+  lineApi('https://api.line.me/v2/bot/user/all/richmenu/' + id, 'post');
+  console.log('圖文選單已建立並設為預設：' + id);
 }
